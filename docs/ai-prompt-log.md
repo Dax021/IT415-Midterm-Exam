@@ -25,3 +25,10 @@
 2. **AI's answer:** Claude provided an updated `<header>` HTML block containing clean, scalable SVG paths using `currentColor`.
 3. **My evaluation:** The SVGs successfully replaced the emojis, making the interface look significantly more professional and modern while strictly adhering to the "no external libraries" constraint.
 4. **What I changed:** I replaced the existing `<header>` block in `index.html` with the new SVG version.
+
+**Prompt #5** | Tool: Claude Code
+**Purpose:** debugging / fixing application error (Stock Rules)
+1. **Prompt I used:** (Pasted context that I am on `feature/stock-rules` branch, and requirements to block users from editing a product's stock down below the amount currently reserved by Pending orders, including error toast/validation logic).
+2. **AI's answer:** Claude provided an updated `handleProductSubmit` function that uses the existing `getPendingQty` helper to validate the stock input against reserved amounts, and triggers `setFieldError` and `showToast` if the rule is violated.
+3. **My evaluation:** The code perfectly solves the logical flaw. I tested creating a Pending order for Tilapia and then attempting to reduce its stock below the ordered amount in the Inventory tab; the app successfully blocked the edit and showed the correct error message.
+4. **What I changed:** I replaced `app.js` with the updated code.
