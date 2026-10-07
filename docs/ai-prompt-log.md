@@ -11,3 +11,10 @@
 2. **AI's answer:** Claude provided `app.js` with functional tab navigation, local storage initialization, product addition/editing, and a working shopping cart logic for creating orders.
 3. **My evaluation:** The code works well. I can add products, stock badges calculate correctly, and I can build a cart and submit an order. However, I noticed I cannot delete a product if it was in a test order, but I couldn't see the order because the Order Records tab logic isn't built yet. Also, the active tab resets on reload.
 4. **What I changed:** I verified the code in the browser and prepared the next prompt to implement the missing Order Records and Reports logic, as well as fixing the tab memory.
+
+**Prompt #3** | Tool: Claude Code
+**Purpose:** code generation (Order Records, Modal, Status Logic, and Reports)
+1. **Prompt I used:** (Pasted the context and requirements for Tab Memory, Order Records filtering, Status Change inventory logic, Modal details, and Reports calculations).
+2. **AI's answer:** Claude provided a fully updated `app.js` that implements the order records table, dynamic status changes that deduct/restore stock based on the "Confirmed" rule, an accessible modal, and the required report calculations. It also added a `stockDeducted` flag to safely track inventory.
+3. **My evaluation:** The code works perfectly. Orders now appear, status changes successfully deduct stock (and restore it on Cancelled), the reports calculate correctly, and the tab memory works. No bugs found.
+4. **What I changed:** I reviewed the `stockDeducted` logic Claude added and agreed it was a smart way to prevent double-deductions. Replaced my old `app.js` with this new version.

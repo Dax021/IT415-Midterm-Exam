@@ -1,8 +1,10 @@
 /* =========================================================
    Agri-Fishery Cooperative — Order & Inventory System
    js/app.js
-   Scope: state + localStorage, tab navigation, product CRUD,
-          order creation (cart), toast notifications.
+   Scope: state + localStorage, tab navigation (with memory),
+          product CRUD, order creation (cart), order records,
+          status changes with inventory adjustments, order
+          details modal, reports, toast notifications.
    ========================================================= */
 'use strict';
 
@@ -10,11 +12,15 @@
 const STORAGE_KEYS = {
   products: 'coop_products',
   orders: 'coop_orders',
+  activeTab: 'coop_active_tab',
 };
 const LOW_STOCK_THRESHOLD = 20; // kg
 const TOAST_DURATION = 3000;    // ms
 const TOAST_EXIT_MS = 200;      // matches the toastOut animation in CSS
 const VALID_CATEGORIES = ['Crop', 'Fishery'];
+const ORDER_STATUSES = ['Pending', 'Confirmed', 'Delivered', 'Cancelled'];
+/** Statuses in which an order holds (has deducted) inventory stock. */
+const STOCK_HOLDING_STATUSES = ['Confirmed', 'Delivered'];
 
 /* ---------- 2. State ---------- */
 const loadFromStorage = (key) => {
@@ -30,6 +36,7 @@ let products = loadFromStorage(STORAGE_KEYS.products);
 let orders = loadFromStorage(STORAGE_KEYS.orders);
 let cart = [];                // temporary, not persisted: { productId, name, price, qty, lineTotal }
 let activeCategory = 'All';   // inventory filter
+let lastFocusedElement = null; // element to return focus to when the modal closes
 
 /** Sync the products and orders arrays back to localStorage. Returns true on success. */
 const saveData = () => {
@@ -83,6 +90,36 @@ const els = {
   grandTotal: $('#grand-total'),
   clearCartBtn: $('#clear-cart-btn'),
 
+  // Order records
+  filterStatus: $('#filter-status'),
+  filterSearch: $('#filter-search'),
+  filterDate: $('#filter-date'),
+  resetFiltersBtn: $('#reset-filters-btn'),
+  ordersTable: $('#orders-table'),
+  ordersTbody: $('#orders-tbody'),
+  ordersEmpty: $('#orders-empty'),
+
+  // Order details modal
+  modal: $('#order-modal'),
+  modalDialog: $('#order-modal .modal__dialog'),
+  modalOrderId: $('#modal-order-id'),
+  modalStatus: $('#modal-status'),
+  modalBuyer: $('#modal-buyer'),
+  modalContact: $('#modal-contact'),
+  modalDate: $('#modal-date'),
+  modalItemsTbody: $('#modal-items-tbody'),
+  modalTotal: $('#modal-total'),
+
+  // Reports
+  statTotalSales: $('#stat-total-sales'),
+  statTopProduct: $('#stat-top-product'),
+  statTopProductQty: $('#stat-top-product-qty'),
+  statTotalOrders: $('#stat-total-orders'),
+  statPending: $('#stat-pending'),
+  statConfirmed: $('#stat-confirmed'),
+  statDelivered: $('#stat-delivered'),
+  statCancelled: $('#stat-cancelled'),
+
   // Misc
   toastContainer: $('#toast-container'),
   footerYear: $('#footer-year'),
@@ -117,6 +154,17 @@ const todayISO = () => {
   return `${now.getFullYear()}-${month}-${day}`;
 };
 
+/** Display a YYYY-MM-DD string as e.g. "Oct 7, 2026" without any time-zone shifting. */
+const formatDate = (isoDate) => {
+  const [year, month, day] = String(isoDate ?? '').split('-').map(Number);
+  if (!year || !month || !day) return isoDate || '\u2014';
+  return new Date(year, month - 1, day).toLocaleDateString('en-PH', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
 /** Next sequential order number, e.g. ORD-0001. Based on the highest existing number so deletions never cause reuse. */
 const generateOrderNumber = () => {
   const highest = orders.reduce((max, order) => {
@@ -127,10 +175,21 @@ const generateOrderNumber = () => {
 };
 
 const findProduct = (id) => products.find((product) => product.id === id);
+const findOrder = (id) => orders.find((order) => order.id === id);
 const sortByName = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
 
+const getOrderItems = (order) => (Array.isArray(order.items) ? order.items : []);
+
+const getOrderTotal = (order) =>
+  Number.isFinite(order.total)
+    ? order.total
+    : round2(getOrderItems(order).reduce((sum, item) => sum + (item.lineTotal ?? 0), 0));
+
 const isProductInOrders = (productId) =>
-  orders.some((order) => Array.isArray(order.items) && order.items.some((item) => item.productId === productId));
+  orders.some((order) => getOrderItems(order).some((item) => item.productId === productId));
+
+const statusBadge = (status) =>
+  `<span class="badge badge--${escapeHtml(String(status).toLowerCase())}">${escapeHtml(status)}</span>`;
 
 /* ---------- 5. Form error helpers ---------- */
 const clearErrors = (form) => {
@@ -172,7 +231,23 @@ const showToast = (message, type = 'info') => {
   timerId = setTimeout(removeToast, TOAST_DURATION);
 };
 
-/* ---------- 7. Tab navigation ---------- */
+/* ---------- 7. Tab navigation (with memory) ---------- */
+const saveActiveTab = (viewId) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.activeTab, viewId);
+  } catch {
+    /* non-critical: the tab simply won't be remembered */
+  }
+};
+
+const loadActiveTab = () => {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.activeTab);
+  } catch {
+    return null;
+  }
+};
+
 const switchView = (viewId) => {
   els.tabs.forEach((tab) => {
     const isActive = tab.dataset.view === viewId;
@@ -186,6 +261,8 @@ const switchView = (viewId) => {
     view.classList.toggle('is-active', isActive);
     view.hidden = !isActive;
   });
+
+  saveActiveTab(viewId);
 };
 
 const initTabs = () => {
@@ -207,6 +284,10 @@ const initTabs = () => {
       switchView(nextTab.dataset.view);
     });
   });
+
+  // Restore the last active tab (ignore stale or unknown values)
+  const savedView = loadActiveTab();
+  if (els.tabs.some((tab) => tab.dataset.view === savedView)) switchView(savedView);
 };
 
 /* ---------- 8. Product management ---------- */
@@ -432,7 +513,7 @@ const updateItemPreview = () => {
 
   els.lineTotal.textContent = formatCurrency(total);
   els.itemStockHint.textContent = product
-    ? `${formatKg(getRemainingStock(product))} kg available`
+    ? `${formatKg(Math.max(0, getRemainingStock(product)))} kg available`
     : '';
 };
 
@@ -490,7 +571,7 @@ const handleAddItem = () => {
   const remaining = getRemainingStock(product);
   if (qty > remaining) {
     return setItemError(
-      `Only ${formatKg(remaining)} kg of ${product.name} is available.`,
+      `Only ${formatKg(Math.max(0, remaining))} kg of ${product.name} is available.`,
       els.itemQty
     );
   }
@@ -586,6 +667,7 @@ const handleOrderSubmit = (event) => {
     contact,
     orderDate,
     status: 'Pending',
+    stockDeducted: false, // true while the order holds stock (Confirmed / Delivered)
     items: cart.map(({ productId, name, price, qty, lineTotal }) => ({
       productId, name, price, qty, lineTotal,
     })),
@@ -604,6 +686,8 @@ const handleOrderSubmit = (event) => {
   els.orderDate.value = todayISO();
   renderCart();
   renderProductOptions();
+  renderOrders();
+  renderReports();
   showToast(`Order ${order.id} for ${buyerName} submitted (${formatCurrency(order.total)}).`, 'success');
 };
 
@@ -637,17 +721,286 @@ const initOrderForm = () => {
   els.orderForm.addEventListener('submit', handleOrderSubmit);
 };
 
-/* ---------- 10. Init ---------- */
+/* ---------- 10. Order records ---------- */
+const compareNewestFirst = (a, b) =>
+  String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')) ||
+  String(b.id).localeCompare(String(a.id));
+
+/** Orders matching the current filter controls, newest first. */
+const getFilteredOrders = () => {
+  const status = els.filterStatus.value;
+  const query = els.filterSearch.value.trim().toLowerCase();
+  const date = els.filterDate.value;
+
+  return orders
+    .filter(
+      (order) =>
+        (status === 'All' || order.status === status) &&
+        (!query || String(order.buyerName ?? '').toLowerCase().includes(query)) &&
+        (!date || order.orderDate === date)
+    )
+    .sort(compareNewestFirst);
+};
+
+const renderOrders = () => {
+  const visible = getFilteredOrders();
+
+  els.ordersTbody.innerHTML = visible
+    .map((order) => {
+      const { id, buyerName, contact, orderDate, status } = order;
+      const safeId = escapeHtml(id);
+      const statusOptions = ORDER_STATUSES.map(
+        (option) => `<option value="${option}"${option === status ? ' selected' : ''}>${option}</option>`
+      ).join('');
+
+      return `
+        <tr>
+          <td data-label="Order #">${safeId}</td>
+          <td data-label="Buyer">${escapeHtml(buyerName)}</td>
+          <td data-label="Contact">${escapeHtml(contact)}</td>
+          <td data-label="Date">${escapeHtml(formatDate(orderDate))}</td>
+          <td data-label="Items" class="num">${getOrderItems(order).length}</td>
+          <td data-label="Total Amount" class="num">${formatCurrency(getOrderTotal(order))}</td>
+          <td data-label="Status">${statusBadge(status)}</td>
+          <td data-label="Actions" class="actions-col">
+            <button type="button" class="btn btn--small btn--outline" data-action="view-order" data-id="${safeId}" aria-label="View details for ${safeId}">View Details</button>
+            <label class="sr-only" for="status-${safeId}">Change status for ${safeId}</label>
+            <select id="status-${safeId}" class="select--small" data-action="change-status" data-id="${safeId}">${statusOptions}</select>
+          </td>
+        </tr>`;
+    })
+    .join('');
+
+  const isEmpty = visible.length === 0;
+  els.ordersEmpty.hidden = !isEmpty;
+  els.ordersEmpty.textContent =
+    orders.length === 0 ? 'No orders yet. Create an order to get started.' : 'No orders match your filters.';
+  els.ordersTable.closest('.table-wrap').hidden = isEmpty;
+};
+
+const resetOrderFilters = () => {
+  els.filterStatus.value = 'All';
+  els.filterSearch.value = '';
+  els.filterDate.value = '';
+  renderOrders();
+  els.filterStatus.focus();
+};
+
+/* ---------- 11. Order status & inventory rules ---------- */
+/**
+ * Inventory rules (an order "holds" stock while Confirmed or Delivered; tracked by order.stockDeducted):
+ *  - Moving into Confirmed (or Delivered) when the order holds no stock  -> deduct the items' kg.
+ *  - Moving to Cancelled (or back to Pending) when the order holds stock -> add the kg back.
+ *  - Confirmed <-> Delivered never touches stock (the order already holds it).
+ * The flag prevents double deductions and phantom refunds (e.g. Pending -> Delivered -> Cancelled).
+ */
+const changeOrderStatus = (orderId, newStatus) => {
+  const order = findOrder(orderId);
+  if (!order || !ORDER_STATUSES.includes(newStatus) || order.status === newStatus) return;
+
+  const previousStatus = order.status;
+  const previouslyHeldStock = Boolean(order.stockDeducted);
+  const shouldHoldStock = STOCK_HOLDING_STATUSES.includes(newStatus);
+  const productsSnapshot = products.map((product) => ({ ...product }));
+  let stockNote = '';
+
+  if (shouldHoldStock && !previouslyHeldStock) {
+    // Validate everything first so a failed change never leaves inventory half-adjusted.
+    const shortage = getOrderItems(order).find((item) => {
+      const product = findProduct(item.productId);
+      return !product || item.qty > product.stock;
+    });
+
+    if (shortage) {
+      const product = findProduct(shortage.productId);
+      showToast(
+        product
+          ? `Cannot move ${order.id} to ${newStatus}: ${shortage.name} needs ${formatKg(shortage.qty)} kg but only ${formatKg(product.stock)} kg is in stock.`
+          : `Cannot move ${order.id} to ${newStatus}: ${shortage.name} is no longer in inventory.`,
+        'error'
+      );
+      renderOrders(); // snaps the dropdown back to the real status
+      return;
+    }
+
+    getOrderItems(order).forEach((item) => {
+      const product = findProduct(item.productId);
+      product.stock = round2(product.stock - item.qty);
+    });
+    order.stockDeducted = true;
+    stockNote = ' Stock deducted.';
+  } else if (!shouldHoldStock && previouslyHeldStock) {
+    getOrderItems(order).forEach((item) => {
+      const product = findProduct(item.productId);
+      if (product) product.stock = round2(product.stock + item.qty);
+    });
+    order.stockDeducted = false;
+    stockNote = ' Stock restored.';
+  }
+
+  order.status = newStatus;
+
+  if (!saveData()) {
+    // Roll everything back so memory matches what is actually stored.
+    products = productsSnapshot;
+    order.status = previousStatus;
+    order.stockDeducted = previouslyHeldStock;
+    renderOrders();
+    return;
+  }
+
+  renderProducts();
+  renderProductOptions();
+  renderOrders();
+  renderReports();
+  showToast(`${order.id}: ${previousStatus} \u2192 ${newStatus}.${stockNote}`, 'success');
+};
+
+const initOrderRecords = () => {
+  els.filterStatus.addEventListener('change', renderOrders);
+  els.filterDate.addEventListener('change', renderOrders);
+  els.filterSearch.addEventListener('input', renderOrders);
+  els.resetFiltersBtn.addEventListener('click', resetOrderFilters);
+
+  // Event delegation: View Details buttons and status dropdowns
+  els.ordersTbody.addEventListener('click', (event) => {
+    const button = event.target.closest('button[data-action="view-order"]');
+    if (button) openOrderModal(button.dataset.id, button);
+  });
+
+  els.ordersTbody.addEventListener('change', (event) => {
+    const select = event.target.closest('select[data-action="change-status"]');
+    if (select) changeOrderStatus(select.dataset.id, select.value);
+  });
+};
+
+/* ---------- 12. Order details modal ---------- */
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+const openOrderModal = (orderId, triggerEl = null) => {
+  const order = findOrder(orderId);
+  if (!order) return;
+
+  els.modalOrderId.textContent = order.id;
+  els.modalStatus.innerHTML = statusBadge(order.status);
+  els.modalBuyer.textContent = order.buyerName;
+  els.modalContact.textContent = order.contact;
+  els.modalDate.textContent = formatDate(order.orderDate);
+
+  els.modalItemsTbody.innerHTML = getOrderItems(order)
+    .map(
+      ({ name, price, qty, lineTotal }) => `
+        <tr>
+          <td data-label="Product">${escapeHtml(name)}</td>
+          <td data-label="Price/kg" class="num">${formatCurrency(price)}</td>
+          <td data-label="Qty (kg)" class="num">${formatKg(qty)}</td>
+          <td data-label="Line Total" class="num">${formatCurrency(lineTotal)}</td>
+        </tr>`
+    )
+    .join('');
+  els.modalTotal.textContent = formatCurrency(getOrderTotal(order));
+
+  lastFocusedElement = triggerEl ?? document.activeElement;
+  els.modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  els.modalDialog.focus();
+};
+
+const closeOrderModal = () => {
+  if (els.modal.hidden) return;
+  els.modal.hidden = true;
+  document.body.style.overflow = '';
+  if (lastFocusedElement?.isConnected) lastFocusedElement.focus();
+  lastFocusedElement = null;
+};
+
+const handleModalKeydown = (event) => {
+  if (els.modal.hidden) return;
+
+  if (event.key === 'Escape') {
+    closeOrderModal();
+    return;
+  }
+
+  // Keep keyboard focus inside the dialog while it is open
+  if (event.key !== 'Tab') return;
+  const focusable = $$(FOCUSABLE_SELECTOR, els.modalDialog);
+  if (focusable.length === 0) return;
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = document.activeElement;
+
+  if (event.shiftKey && (active === first || active === els.modalDialog)) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && active === last) {
+    event.preventDefault();
+    first.focus();
+  }
+};
+
+const initModal = () => {
+  // Backdrop, the "x" button and the footer Close button all carry [data-close-modal]
+  els.modal.addEventListener('click', (event) => {
+    if (event.target.closest('[data-close-modal]')) closeOrderModal();
+  });
+  document.addEventListener('keydown', handleModalKeydown);
+};
+
+/* ---------- 13. Reports & analytics ---------- */
+const renderReports = () => {
+  const counts = Object.fromEntries(ORDER_STATUSES.map((status) => [status, 0]));
+  const soldByProduct = new Map(); // productId -> { name, qty }
+  let totalSales = 0;
+
+  orders.forEach((order) => {
+    if (order.status in counts) counts[order.status] += 1;
+
+    // Total Sales counts Delivered orders only
+    if (order.status === 'Delivered') totalSales += getOrderTotal(order);
+
+    // Top-selling product counts every order except Cancelled
+    if (order.status !== 'Cancelled') {
+      getOrderItems(order).forEach(({ productId, name, qty }) => {
+        const entry = soldByProduct.get(productId) ?? { name: findProduct(productId)?.name ?? name, qty: 0 };
+        entry.qty = round2(entry.qty + qty);
+        soldByProduct.set(productId, entry);
+      });
+    }
+  });
+
+  // Highest kg wins; ties resolve alphabetically so the result is stable
+  const [topProduct] = [...soldByProduct.values()].sort(
+    (a, b) => b.qty - a.qty || a.name.localeCompare(b.name)
+  );
+
+  els.statTotalSales.textContent = formatCurrency(round2(totalSales));
+  els.statTotalOrders.textContent = orders.length;
+  els.statPending.textContent = counts.Pending;
+  els.statConfirmed.textContent = counts.Confirmed;
+  els.statDelivered.textContent = counts.Delivered;
+  els.statCancelled.textContent = counts.Cancelled;
+  els.statTopProduct.textContent = topProduct ? topProduct.name : '\u2014';
+  els.statTopProductQty.textContent = `${formatKg(topProduct ? topProduct.qty : 0)} kg sold`;
+};
+
+/* ---------- 14. Init ---------- */
 const init = () => {
   if (els.footerYear) els.footerYear.textContent = new Date().getFullYear();
 
   initTabs();
   initProducts();
   initOrderForm();
+  initOrderRecords();
+  initModal();
 
   renderProducts();
   renderProductOptions();
   renderCart();
+  renderOrders();
+  renderReports();
 };
 
 if (document.readyState === 'loading') {
