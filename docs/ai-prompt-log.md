@@ -18,3 +18,10 @@
 2. **AI's answer:** Claude provided a fully updated `app.js` that implements the order records table, dynamic status changes that deduct/restore stock based on the "Confirmed" rule, an accessible modal, and the required report calculations. It also added a `stockDeducted` flag to safely track inventory.
 3. **My evaluation:** The code works perfectly. Orders now appear, status changes successfully deduct stock (and restore it on Cancelled), the reports calculate correctly, and the tab memory works. No bugs found.
 4. **What I changed:** I reviewed the `stockDeducted` logic Claude added and agreed it was a smart way to prevent double-deductions. Replaced my old `app.js` with this new version.
+
+**Prompt #4** | Tool: Claude Code
+**Purpose:** refactoring (UI Icons)
+1. **Prompt I used:** (Pasted the context and requirements to replace text emojis in the header and tabs with clean, inline SVG icons without using external libraries).
+2. **AI's answer:** Claude provided an updated `<header>` HTML block containing clean, scalable SVG paths using `currentColor`.
+3. **My evaluation:** The SVGs successfully replaced the emojis, making the interface look significantly more professional and modern while strictly adhering to the "no external libraries" constraint.
+4. **What I changed:** I replaced the existing `<header>` block in `index.html` with the new SVG version.

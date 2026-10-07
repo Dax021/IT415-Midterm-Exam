@@ -12,10 +12,20 @@
   <a class="skip-link" href="#main-content">Skip to main content</a>
 
   <!-- ============ HEADER & NAVIGATION ============ -->
-  <header class="app-header">
+    <header class="app-header">
     <div class="app-header__inner">
       <div class="brand">
-        <span class="brand__logo" aria-hidden="true">&#127806;</span>
+        <span class="brand__logo" aria-hidden="true">
+          <!-- Sprout -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+               stroke-linejoin="round" aria-hidden="true" focusable="false">
+            <path d="M7 20h10"/>
+            <path d="M10 20c5.5-2.5.8-6.4 3-10"/>
+            <path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/>
+            <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>
+          </svg>
+        </span>
         <div class="brand__text">
           <h1 class="brand__title">Agri-Fishery Cooperative</h1>
           <p class="brand__subtitle">Order &amp; Inventory System</p>
@@ -27,28 +37,69 @@
           <li role="presentation">
             <button type="button" class="nav-tab is-active" id="tab-inventory" role="tab"
                     aria-selected="true" aria-controls="view-inventory" data-view="view-inventory">
-              <span class="nav-tab__icon" aria-hidden="true">&#128230;</span>
+              <span class="nav-tab__icon" aria-hidden="true">
+                <!-- Package -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true" focusable="false">
+                  <path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/>
+                  <path d="M12 22V12"/>
+                  <path d="m3.3 7 8.7 5 8.7-5"/>
+                  <path d="m7.5 4.27 9 5.15"/>
+                </svg>
+              </span>
               <span>Inventory / Products</span>
             </button>
           </li>
           <li role="presentation">
             <button type="button" class="nav-tab" id="tab-create-order" role="tab"
                     aria-selected="false" aria-controls="view-create-order" data-view="view-create-order" tabindex="-1">
-              <span class="nav-tab__icon" aria-hidden="true">&#128722;</span>
+              <span class="nav-tab__icon" aria-hidden="true">
+                <!-- Shopping cart -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true" focusable="false">
+                  <circle cx="8" cy="21" r="1"/>
+                  <circle cx="19" cy="21" r="1"/>
+                  <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                </svg>
+              </span>
               <span>Create Order</span>
             </button>
           </li>
           <li role="presentation">
             <button type="button" class="nav-tab" id="tab-orders" role="tab"
                     aria-selected="false" aria-controls="view-orders" data-view="view-orders" tabindex="-1">
-              <span class="nav-tab__icon" aria-hidden="true">&#128203;</span>
+              <span class="nav-tab__icon" aria-hidden="true">
+                <!-- Clipboard list -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true" focusable="false">
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                  <path d="M12 11h4"/>
+                  <path d="M12 16h4"/>
+                  <path d="M8 11h.01"/>
+                  <path d="M8 16h.01"/>
+                </svg>
+              </span>
               <span>Order Records</span>
             </button>
           </li>
           <li role="presentation">
             <button type="button" class="nav-tab" id="tab-reports" role="tab"
                     aria-selected="false" aria-controls="view-reports" data-view="view-reports" tabindex="-1">
-              <span class="nav-tab__icon" aria-hidden="true">&#128202;</span>
+              <span class="nav-tab__icon" aria-hidden="true">
+                <!-- Bar chart -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round" aria-hidden="true" focusable="false">
+                  <path d="M3 3v18h18"/>
+                  <path d="M18 17V9"/>
+                  <path d="M13 17V5"/>
+                  <path d="M8 17v-3"/>
+                </svg>
+              </span>
               <span>Reports &amp; Analytics</span>
             </button>
           </li>
