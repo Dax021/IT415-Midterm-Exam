@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Agri-Fishery Cooperative Order and Inventory System">
+  <title>Agri-Fishery Cooperative | Order &amp; Inventory System</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <!-- ============ HEADER & NAVIGATION ============ -->
+  <header class="app-header">
+    <div class="app-header__inner">
+      <div class="brand">
+        <span class="brand__logo" aria-hidden="true">&#127806;</span>
+        <div class="brand__text">
+          <h1 class="brand__title">Agri-Fishery Cooperative</h1>
+          <p class="brand__subtitle">Order &amp; Inventory System</p>
+        </div>
+      </div>
+
+      <nav class="main-nav" aria-label="Main views">
+        <ul class="main-nav__list" role="tablist">
+          <li role="presentation">
+            <button type="button" class="nav-tab is-active" id="tab-inventory" role="tab"
+                    aria-selected="true" aria-controls="view-inventory" data-view="view-inventory">
+              <span class="nav-tab__icon" aria-hidden="true">&#128230;</span>
+              <span>Inventory / Products</span>
+            </button>
+          </li>
+          <li role="presentation">
+            <button type="button" class="nav-tab" id="tab-create-order" role="tab"
+                    aria-selected="false" aria-controls="view-create-order" data-view="view-create-order" tabindex="-1">
+              <span class="nav-tab__icon" aria-hidden="true">&#128722;</span>
+              <span>Create Order</span>
+            </button>
+          </li>
+          <li role="presentation">
+            <button type="button" class="nav-tab" id="tab-orders" role="tab"
+                    aria-selected="false" aria-controls="view-orders" data-view="view-orders" tabindex="-1">
+              <span class="nav-tab__icon" aria-hidden="true">&#128203;</span>
+              <span>Order Records</span>
+            </button>
+          </li>
+          <li role="presentation">
+            <button type="button" class="nav-tab" id="tab-reports" role="tab"
+                    aria-selected="false" aria-controls="view-reports" data-view="view-reports" tabindex="-1">
+              <span class="nav-tab__icon" aria-hidden="true">&#128202;</span>
+              <span>Reports &amp; Analytics</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ============ MAIN CONTENT ============ -->
+  <main id="main-content" class="app-main">
+
+    <!-- ======================================================
+         VIEW 1: INVENTORY / PRODUCTS
+         ====================================================== -->
+    <section id="view-inventory" class="view is-active" role="tabpanel" aria-labelledby="tab-inventory">
+      <header class="view__header">
+        <h2 class="view__title">Inventory / Products</h2>
+        <p class="view__desc">Add, update and monitor crop and fishery products.</p>
+      </header>
+
+      <div class="layout-split">
+
+        <!-- Product Form -->
+        <article class="card">
+          <div class="card__header">
+            <h3 class="card__title" id="product-form-title">Add Product</h3>
+          </div>
+          <form id="product-form" class="form" novalidate>
+            <input type="hidden" id="product-id" name="productId">
+
+            <div class="form-group">
+              <label for="product-name">Product Name <span class="required" aria-hidden="true">*</span></label>
+              <input type="text" id="product-name" name="productName" placeholder="e.g. Tilapia, Native Rice"
+                     required autocomplete="off" aria-describedby="product-name-error">
+              <p class="form-error" id="product-name-error" role="alert"></p>
+            </div>
+
+            <div class="form-group">
+              <label for="product-category">Category <span class="required" aria-hidden="true">*</span></label>
+              <select id="product-category" name="productCategory" required aria-describedby="product-category-error">
+                <option value="" selected disabled>Select category</option>
+                <option value="Crop">Crop</option>
+                <option value="Fishery">Fishery</option>
+              </select>
+              <p class="form-error" id="product-category-error" role="alert"></p>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="product-price">Price per kg (&#8369;) <span class="required" aria-hidden="true">*</span></label>
+                <input type="number" id="product-price" name="productPrice" min="0" step="0.01"
+                       placeholder="0.00" required inputmode="decimal" aria-describedby="product-price-error">
+                <p class="form-error" id="product-price-error" role="alert"></p>
+              </div>
+
+              <div class="form-group">
+                <label for="product-stock">Stock (kg) <span class="required" aria-hidden="true">*</span></label>
+                <input type="number" id="product-stock" name="productStock" min="0" step="0.01"
+                       placeholder="0" required inputmode="decimal" aria-describedby="product-stock-error">
+                <p class="form-error" id="product-stock-error" role="alert"></p>
+              </div>
+            </div>
+
+            <p class="form-hint">Products with stock below 20 kg are flagged as low stock.</p>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn--primary" id="product-submit-btn">Save Product</button>
+              <button type="reset" class="btn btn--ghost" id="product-cancel-btn">Cancel / Clear</button>
+            </div>
+          </form>
+        </article>
+
+        <!-- Products Table -->
+        <article class="card">
+          <div class="card__header card__header--wrap">
+            <h3 class="card__title">Product List</h3>
+
+            <div class="filter-bar" role="group" aria-label="Filter products by category">
+              <button type="button" class="chip is-active" data-category="All" aria-pressed="true">All</button>
+              <button type="button" class="chip" data-category="Crop" aria-pressed="false">Crop</button>
+              <button type="button" class="chip" data-category="Fishery" aria-pressed="false">Fishery</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="products-table">
+              <caption class="sr-only">List of cooperative products with price, stock and stock status</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Category</th>
+                  <th scope="col" class="num">Price/kg</th>
+                  <th scope="col" class="num">Stock (kg)</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="actions-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="products-tbody">
+                <!-- Example row (JavaScript will render rows here)
+                <tr>
+                  <td data-label="Name">Tilapia</td>
+                  <td data-label="Category"><span class="badge badge--fishery">Fishery</span></td>
+                  <td data-label="Price/kg" class="num">&#8369;150.00</td>
+                  <td data-label="Stock (kg)" class="num">12.00</td>
+                  <td data-label="Status"><span class="badge badge--low">Low Stock</span></td>
+                  <td data-label="Actions" class="actions-col">
+                    <button type="button" class="btn btn--small btn--outline">Edit</button>
+                    <button type="button" class="btn btn--small btn--danger">Delete</button>
+                  </td>
+                </tr>
+                -->
+              </tbody>
+            </table>
+          </div>
+
+          <p class="empty-state" id="products-empty" hidden>No products found. Add a product using the form.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ======================================================
+         VIEW 2: CREATE ORDER
+         ====================================================== -->
+    <section id="view-create-order" class="view" role="tabpanel" aria-labelledby="tab-create-order" hidden>
+      <header class="view__header">
+        <h2 class="view__title">Create Order</h2>
+        <p class="view__desc">Record buyer details and add one or more products to the order.</p>
+      </header>
+
+      <form id="order-form" class="form" novalidate>
+
+        <!-- Buyer Details -->
+        <fieldset class="card fieldset">
+          <legend class="card__title">Buyer Details</legend>
+          <div class="form-row form-row--3">
+            <div class="form-group">
+              <label for="buyer-name">Buyer Name <span class="required" aria-hidden="true">*</span></label>
+              <input type="text" id="buyer-name" name="buyerName" placeholder="Full name" required
+                     autocomplete="off" aria-describedby="buyer-name-error">
+              <p class="form-error" id="buyer-name-error" role="alert"></p>
+            </div>
+
+            <div class="form-group">
+              <label for="buyer-contact">Contact Number <span class="required" aria-hidden="true">*</span></label>
+              <input type="tel" id="buyer-contact" name="buyerContact" placeholder="e.g. 0917 123 4567"
+                     required inputmode="tel" autocomplete="off" aria-describedby="buyer-contact-error">
+              <p class="form-error" id="buyer-contact-error" role="alert"></p>
+            </div>
+
+            <div class="form-group">
+              <label for="order-date">Order Date <span class="required" aria-hidden="true">*</span></label>
+              <input type="date" id="order-date" name="orderDate" required aria-describedby="order-date-error">
+              <p class="form-error" id="order-date-error" role="alert"></p>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Item Selector -->
+        <fieldset class="card fieldset">
+          <legend class="card__title">Add Items</legend>
+
+          <div class="item-selector">
+            <div class="form-group item-selector__product">
+              <label for="item-product">Product</label>
+              <select id="item-product" name="itemProduct">
+                <option value="" selected disabled>Select product</option>
+                <!-- Options rendered by JavaScript -->
+              </select>
+              <p class="form-hint" id="item-stock-hint" aria-live="polite"></p>
+            </div>
+
+            <div class="form-group item-selector__qty">
+              <label for="item-qty">Quantity (kg)</label>
+              <input type="number" id="item-qty" name="itemQty" min="0" step="0.01"
+                     placeholder="0" inputmode="decimal">
+            </div>
+
+            <div class="form-group item-selector__total">
+              <span class="label-like" id="line-total-label">Line Total</span>
+              <output id="line-total" class="output-box" for="item-product item-qty" aria-labelledby="line-total-label">&#8369;0.00</output>
+            </div>
+
+            <div class="item-selector__action">
+              <button type="button" class="btn btn--secondary" id="add-item-btn">+ Add Item</button>
+            </div>
+          </div>
+          <p class="form-error" id="item-error" role="alert"></p>
+        </fieldset>
+
+        <!-- Cart -->
+        <section class="card" aria-labelledby="cart-title">
+          <div class="card__header">
+            <h3 class="card__title" id="cart-title">Order Items</h3>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="cart-table">
+              <caption class="sr-only">Items added to the current order</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Product</th>
+                  <th scope="col" class="num">Price/kg</th>
+                  <th scope="col" class="num">Qty (kg)</th>
+                  <th scope="col" class="num">Line Total</th>
+                  <th scope="col" class="actions-col">Remove</th>
+                </tr>
+              </thead>
+              <tbody id="cart-tbody">
+                <!-- Cart rows rendered by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+
+          <p class="empty-state" id="cart-empty">No items added yet.</p>
+
+          <div class="grand-total">
+            <span class="grand-total__label">Order Grand Total</span>
+            <output id="grand-total" class="grand-total__value" aria-live="polite">&#8369;0.00</output>
+          </div>
+
+          <div class="form-actions form-actions--end">
+            <button type="button" class="btn btn--ghost" id="clear-cart-btn">Clear Order</button>
+            <button type="submit" class="btn btn--primary btn--large" id="submit-order-btn">Submit Order</button>
+          </div>
+        </section>
+      </form>
+    </section>
+
+    <!-- ======================================================
+         VIEW 3: ORDER RECORDS
+         ====================================================== -->
+    <section id="view-orders" class="view" role="tabpanel" aria-labelledby="tab-orders" hidden>
+      <header class="view__header">
+        <h2 class="view__title">Order Records</h2>
+        <p class="view__desc">Search, filter and manage all cooperative orders.</p>
+      </header>
+
+      <article class="card">
+        <form class="filters" id="order-filters" role="search" aria-label="Filter orders" onsubmit="return false;">
+          <div class="form-group">
+            <label for="filter-status">Status</label>
+            <select id="filter-status" name="filterStatus">
+              <option value="All" selected>All</option>
+              <option value="Pending">Pending</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Delivered">Delivered</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="filter-search">Search Buyer</label>
+            <input type="search" id="filter-search" name="filterSearch" placeholder="Buyer name..." autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label for="filter-date">Order Date</label>
+            <input type="date" id="filter-date" name="filterDate">
+          </div>
+
+          <div class="filters__action">
+            <button type="button" class="btn btn--ghost" id="reset-filters-btn">Reset Filters</button>
+          </div>
+        </form>
+
+        <div class="table-wrap">
+          <table class="table" id="orders-table">
+            <caption class="sr-only">Order records</caption>
+            <thead>
+              <tr>
+                <th scope="col">Order #</th>
+                <th scope="col">Buyer</th>
+                <th scope="col">Contact</th>
+                <th scope="col">Date</th>
+                <th scope="col" class="num">Items</th>
+                <th scope="col" class="num">Total Amount</th>
+                <th scope="col">Status</th>
+                <th scope="col" class="actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="orders-tbody">
+              <!-- Example row (JavaScript will render rows here)
+              <tr>
+                <td data-label="Order #">ORD-0001</td>
+                <td data-label="Buyer">Juan Dela Cruz</td>
+                <td data-label="Contact">0917 123 4567</td>
+                <td data-label="Date">2026-10-07</td>
+                <td data-label="Items" class="num">3</td>
+                <td data-label="Total Amount" class="num">&#8369;1,250.00</td>
+                <td data-label="Status"><span class="badge badge--pending">Pending</span></td>
+                <td data-label="Actions" class="actions-col">
+                  <button type="button" class="btn btn--small btn--outline">View Details</button>
+                  <label class="sr-only" for="status-ORD-0001">Change status</label>
+                  <select id="status-ORD-0001" class="select--small">
+                    <option>Pending</option><option>Confirmed</option><option>Delivered</option><option>Cancelled</option>
+                  </select>
+                </td>
+              </tr>
+              -->
+            </tbody>
+          </table>
+        </div>
+
+        <p class="empty-state" id="orders-empty" hidden>No orders match your filters.</p>
+      </article>
+    </section>
+
+    <!-- ======================================================
+         VIEW 4: REPORTS & ANALYTICS
+         ====================================================== -->
+    <section id="view-reports" class="view" role="tabpanel" aria-labelledby="tab-reports" hidden>
+      <header class="view__header">
+        <h2 class="view__title">Reports &amp; Analytics</h2>
+        <p class="view__desc">Overview of sales performance and order activity.</p>
+      </header>
+
+      <div class="stats-grid">
+        <article class="stat-card stat-card--primary">
+          <h3 class="stat-card__label">Total Sales</h3>
+          <p class="stat-card__value" id="stat-total-sales">&#8369;0.00</p>
+          <p class="stat-card__note">From Delivered orders only</p>
+        </article>
+
+        <article class="stat-card stat-card--accent">
+          <h3 class="stat-card__label">Top-Selling Product</h3>
+          <p class="stat-card__value" id="stat-top-product">&mdash;</p>
+          <p class="stat-card__note" id="stat-top-product-qty">0 kg sold</p>
+        </article>
+
+        <article class="stat-card">
+          <h3 class="stat-card__label">Total Orders</h3>
+          <p class="stat-card__value" id="stat-total-orders">0</p>
+          <p class="stat-card__note">All statuses</p>
+        </article>
+      </div>
+
+      <article class="card">
+        <div class="card__header">
+          <h3 class="card__title">Orders by Status</h3>
+        </div>
+        <div class="status-grid">
+          <div class="status-card status-card--pending">
+            <span class="status-card__label">Pending</span>
+            <span class="status-card__value" id="stat-pending">0</span>
+          </div>
+          <div class="status-card status-card--confirmed">
+            <span class="status-card__label">Confirmed</span>
+            <span class="status-card__value" id="stat-confirmed">0</span>
+          </div>
+          <div class="status-card status-card--delivered">
+            <span class="status-card__label">Delivered</span>
+            <span class="status-card__value" id="stat-delivered">0</span>
+          </div>
+          <div class="status-card status-card--cancelled">
+            <span class="status-card__label">Cancelled</span>
+            <span class="status-card__value" id="stat-cancelled">0</span>
+          </div>
+        </div>
+      </article>
+    </section>
+
+  </main>
+
+  <footer class="app-footer">
+    <p>&copy; <span id="footer-year">2026</span> Agri-Fishery Cooperative &mdash; Order &amp; Inventory System</p>
+  </footer>
+
+  <!-- ============ ORDER DETAILS MODAL ============ -->
+  <div class="modal" id="order-modal" hidden>
+    <div class="modal__backdrop" data-close-modal></div>
+    <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-desc" tabindex="-1">
+      <header class="modal__header">
+        <div>
+          <h2 class="modal__title" id="modal-title">Order Details</h2>
+          <p class="modal__subtitle" id="modal-desc">Full information for this order.</p>
+        </div>
+        <button type="button" class="modal__close" aria-label="Close order details" data-close-modal>&times;</button>
+      </header>
+
+      <div class="modal__body">
+        <dl class="details-grid">
+          <div class="details-grid__item">
+            <dt>Order #</dt>
+            <dd id="modal-order-id">&mdash;</dd>
+          </div>
+          <div class="details-grid__item">
+            <dt>Status</dt>
+            <dd id="modal-status">&mdash;</dd>
+          </div>
+          <div class="details-grid__item">
+            <dt>Buyer</dt>
+            <dd id="modal-buyer">&mdash;</dd>
+          </div>
+          <div class="details-grid__item">
+            <dt>Contact</dt>
+            <dd id="modal-contact">&mdash;</dd>
+          </div>
+          <div class="details-grid__item">
+            <dt>Order Date</dt>
+            <dd id="modal-date">&mdash;</dd>
+          </div>
+        </dl>
+
+        <div class="table-wrap">
+          <table class="table table--compact" id="modal-items-table">
+            <caption class="sr-only">Items in this order</caption>
+            <thead>
+              <tr>
+                <th scope="col">Product</th>
+                <th scope="col" class="num">Price/kg</th>
+                <th scope="col" class="num">Qty (kg)</th>
+                <th scope="col" class="num">Line Total</th>
+              </tr>
+            </thead>
+            <tbody id="modal-items-tbody"></tbody>
+          </table>
+        </div>
+
+        <div class="grand-total grand-total--modal">
+          <span class="grand-total__label">Grand Total</span>
+          <output class="grand-total__value" id="modal-total">&#8369;0.00</output>
+        </div>
+      </div>
+
+      <footer class="modal__footer">
+        <button type="button" class="btn btn--primary" data-close-modal>Close</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ============ TOAST NOTIFICATIONS ============ -->
+  <div class="toast-container" id="toast-container" aria-live="polite" aria-atomic="false" role="status">
+    <!-- Toasts are injected here. Example structure:
+    <div class="toast toast--success">
+      <span class="toast__icon" aria-hidden="true">&#10003;</span>
+      <p class="toast__message">Product saved successfully.</p>
+      <button type="button" class="toast__close" aria-label="Dismiss notification">&times;</button>
+    </div>
+    -->
+  </div>
+
+  <!-- JavaScript will be linked here later -->
+  <script src="js/app.js"></script>
+</body>
+</html>
