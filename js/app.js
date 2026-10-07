@@ -188,6 +188,21 @@ const getOrderTotal = (order) =>
 const isProductInOrders = (productId) =>
   orders.some((order) => getOrderItems(order).some((item) => item.productId === productId));
 
+/** Total kg of a product currently reserved by Pending orders (not yet deducted from stock). */
+const getPendingQty = (productId) =>
+  round2(
+    orders
+      .filter((order) => order.status === 'Pending')
+      .reduce(
+        (sum, order) =>
+          sum +
+          getOrderItems(order)
+            .filter((item) => item.productId === productId)
+            .reduce((itemSum, item) => itemSum + item.qty, 0),
+        0
+      )
+  );
+
 const statusBadge = (status) =>
   `<span class="badge badge--${escapeHtml(String(status).toLowerCase())}">${escapeHtml(status)}</span>`;
 
@@ -378,6 +393,21 @@ const handleProductSubmit = (event) => {
 
   if (els.productStock.value === '' || !Number.isFinite(stock) || stock < 0) {
     setFieldError(els.productStock, 'Enter a stock amount of 0 or more.');
+  } else if (id) {
+    // Stock rule: an edit may not drop stock below what Pending orders have reserved,
+    // otherwise confirming those orders would push inventory negative.
+    const reserved = getPendingQty(id);
+    if (round2(stock) < reserved) {
+      const productName = findProduct(id)?.name ?? name;
+      setFieldError(
+        els.productStock,
+        `Stock must stay at or above ${formatKg(reserved)} kg (reserved by Pending orders).`
+      );
+      showToast(
+        `Cannot set stock below ${formatKg(reserved)} kg: "${productName}" is reserved in Pending orders. Confirm or cancel those orders first, or keep at least ${formatKg(reserved)} kg in stock.`,
+        'error'
+      );
+    }
   }
 
   if ($('[aria-invalid="true"]', els.productForm)) {
